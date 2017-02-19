@@ -1,88 +1,139 @@
 #include "i2c.h"
 
-void I2C_Disable(I2C_Type* i2c) //Turn off I2C module
+void I2C0_init(void)
 {
-  i2c->C1 &= ~I2C_C1_IICEN_MASK;
+	I2C0->F = 0x20;		// BR => 300
+	I2C0->C1 |= I2C_C1_IICEN_MASK;		// wlacz I2C0
 }
 
-void I2C_DisableInt(I2C_Type* i2c) //Turn off Interrupt
+void I2C1_init(void)
 {
-  i2c->C1 &= ~I2C_C1_IICIE_MASK;
+	I2C1->F = 0x20;		// BR => 300 kbps
+	I2C1->C1 |= I2C_C1_IICEN_MASK;		// wlacz I2C1
 }
 
-void I2C_Enable(I2C_Type* i2c)		//Turn on I2C module
+void I2C_en(I2C_Type *I2C)
 {
-  i2c->C1 |= I2C_C1_IICEN_MASK;
+	I2C->C1 |= I2C_C1_IICEN_MASK;		// wlaczamy I2C				
 }
 
-void I2C_EnableInt(I2C_Type* i2c)	//Turn on Interrupt
+void I2C_dis(I2C_Type *I2C)
 {
-  i2c->C1 |= I2C_C1_IICIE_MASK;
+	I2C->C1 &= ~I2C_C1_IICEN_MASK;		// wylaczamy I2C
 }
 
-uint8_t I2C_ReadByte(I2C_Type* i2c, uint8_t ack)
+void I2C_TX(I2C_Type *I2C)
 {
-  // Select receive mode
-  i2c->C1 &= ~I2C_C1_TX_MASK;
-  
-  // Prepare ACK/NACK bit if FACK == 0
-  if((i2c->SMB & I2C_SMB_FACK_MASK) == 0)
-    i2c->C1 = (ack == I2C_NACK) ? i2c->C1 | I2C_C1_TXAK_MASK : i2c->C1 & ~I2C_C1_TXAK_MASK;
-  
-  // Clear IICIF flag
-  i2c->S |= I2C_S_IICIF_MASK;
-  
-  // Initiate data transfer (receive 1 byte and delete old value from D)
-  (void)i2c->D;
-  // Wait for transfer completion
-  while((i2c->S & I2C_S_IICIF_MASK) == 0);
-  
-  // Send ACK/NACK bit if FACK == 1
-  if((i2c->SMB & I2C_SMB_FACK_MASK) != 0)
-    i2c->C1 = (ack == I2C_NACK) ? i2c->C1 | I2C_C1_TXAK_MASK : i2c->C1 & ~I2C_C1_TXAK_MASK;
-  
-  // Select transmit mode - to omit next read of data byte
-  i2c->C1 |= I2C_C1_TX_MASK;
-  
-  // Return received data
-  return i2c->D;
+	I2C->C1 |= I2C_C1_TX_MASK;		// I2C transmiter
 }
 
-void I2C_Restart(I2C_Type* i2c) //Restart I2C
+void I2C_RX(I2C_Type *I2C)
 {
-  i2c->C1 |= I2C_C1_RSTA_MASK;
+	I2C->C1 &= ~I2C_C1_TX_MASK;		// I2C odbiorca
 }
 
-void I2C_Start(I2C_Type* i2c)  //Master and generate START bit
+void I2C_start(I2C_Type *I2C)
 {
-  i2c->C1 |= I2C_C1_MST_MASK;
+
+	I2C_TX(I2C);
+	I2C1->C1 |= I2C_C1_MST_MASK;		// generator sygnalu Start
 }
 
-void I2C_Stop(I2C_Type * i2c)
-	{
-  // Clear STOPF flag
-  i2c->FLT |= I2C_FLT_STOPF_MASK;
-  
-  // Write STOP bit
-  i2c->C1 &= ~I2C_C1_MST_MASK;
-  // Wait until STOP bit is send
-  while((i2c->FLT & I2C_FLT_STOPF_MASK) == 0){
-    i2c->C1 &= ~I2C_C1_MST_MASK;
-  }
+void I2C_stop(I2C_Type *I2C)
+{
+	I2C1->C1 &= ~I2C_C1_MST_MASK;		// generator sygnalu Stop
+	I2C_RX(I2C);
 }
 
-uint8_t I2C_WriteByte(I2C_Type* i2c, uint8_t data){
-  // Select transmit mode
-  i2c->C1 |= I2C_C1_TX_MASK;
-  
-  // Clear IICIF flag
-  i2c->S |= I2C_S_IICIF_MASK;
-  
-  // Initiate data transfer
-  i2c->D = data;
-  // Wait for transfer completion
-  while((i2c->S & I2C_S_IICIF_MASK) == 0);
-  
-  // Return received ACK bit
-  return ((i2c->S & I2C_S_RXAK_MASK) == I2C_S_RXAK_MASK ? I2C_NACK : I2C_ACK);
+void I2C_restart(I2C_Type *I2C)
+{
+	I2C->C1 |= I2C_C1_RSTA_MASK;					// restart, ponowna generacja sygnalu Start
+}
+
+void I2C_ack(I2C_Type *I2C)
+{
+	I2C->C1 &= ~I2C_C1_TXAK_MASK;				//  ACK do rozpoznania trybu
+}
+
+void I2C_nack(I2C_Type *I2C)
+{
+	I2C->C1 |= I2C_C1_TXAK_MASK;					// NACK do rozpoznania trybu
+}
+
+uint8_t check_ACK(I2C_Type *I2C)
+{
+	if (!(I2C->S & I2C_S_RXAK_MASK)) return 0;   	// sprawdzenie czy odczytano bajt 
+	else return 1;		
+}
+
+void I2C_send(I2C_Type *I2C, uint8_t data)
+{
+	I2C->D = data;												// wyslanie jednego bajtu
+}
+
+uint8_t I2C_read(I2C_Type *I2C)
+{
+	uint8_t data;													// odczytanie jednego bajtu
+	data = I2C->D;
+	return data;
+}
+
+void I2C_wait(I2C_Type *I2C)
+{
+	while (!(I2C->S & I2C_S_IICIF_MASK)) {}		// czekanie na koniec transmisji (koniec przerwania)
+	I2C->S |= I2C_S_IICIF_MASK;		// czyszczenie flagi przerwania 
+}
+
+uint8_t I2C_read_cycle(I2C_Type *I2C, uint8_t mpu_add, uint8_t read_reg)  //funkcja odczyujaca
+{
+	uint8_t dt;		// zmienna z wartosciami odczytywanymi
+
+	I2C_en(I2C);
+	I2C_start(I2C);
+
+	I2C_send(I2C, mpu_add);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_send(I2C, read_reg);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_restart(I2C);
+	I2C_send(I2C, mpu_add + 1);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_RX(I2C);
+	dt = I2C_read(I2C);
+	I2C_nack(I2C);
+	I2C_wait(I2C);
+	dt = I2C_read(I2C);
+
+	I2C_stop(I2C);
+	I2C_dis(I2C);
+
+	return dt;
+}
+
+
+void I2C_write_cycle(I2C_Type *I2C, uint8_t mpu_write_add, uint8_t write_reg, uint8_t dt) //funkcja zapisujaca
+{
+	I2C_en(I2C);
+	I2C_start(I2C);
+
+	I2C_send(I2C, mpu_write_add);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_send(I2C, write_reg);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_send(I2C, dt);
+	I2C_wait(I2C);
+	check_ACK(I2C);
+
+	I2C_stop(I2C);
+	I2C_dis(I2C);
 }
