@@ -13,4 +13,7 @@ void gpio_init(void)
 	SIM->SCGC4 |= SIM_SCGC4_I2C1_MASK;
 	PORTE->PCR[0] |= PORT_PCR_MUX(6) | PORT_PCR_DSE_MASK; //SCL1 i SDA1 init
 	PORTE->PCR[1] |= PORT_PCR_MUX(6) | PORT_PCR_DSE_MASK;
+	
+	PORTD->PCR[5] = PORT_PCR_MUX(1);                       //Pin 5 i 29 przeznaczone na LEDy
+  PORTE->PCR[29] = PORT_PCR_MUX(1);                      
 }

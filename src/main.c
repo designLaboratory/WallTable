@@ -1,4 +1,3 @@
-
 #include "gpio.h"
 #include "i2c.h"
 #include "leds.h"
@@ -6,7 +5,7 @@
 void SysTick_Handler(void)
 {
 	
- int16_t results[3];
+int16_t results[3];
 volatile int16_t z;
 volatile int16_t x;
 volatile	int16_t y;
@@ -18,21 +17,17 @@ z=results[2];
 	
 	if((z>7500)&(y>-9000)&(y<9000))
 		ledGreenOn();
-	else 
-		if((y>7500)&(z>-9000)&(z<9000))
+	else if((y>7500)&(z>-9000)&(z<9000))
 		ledRedOn();
-		
 		
 }
 
-int main(){
-
-	
-	ledsInitialize_empty(); 
+int main()
+{
+	gpio_init();
+	ledsInitialize(); 
 	SystemCoreClockUpdate();		// SysTick init
 	SysTick_Config(SystemCoreClock / 10);
-	//I2C0_init();
-	//I2C1_ini
 	mpu_init();
 		while (1)
 	{
