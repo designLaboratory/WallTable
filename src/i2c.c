@@ -2,27 +2,14 @@
 
 void I2C0_init(void)
 {
-	
-	gpio_init();
-	
-	
-	PORTE->PCR[24] |= PORT_PCR_MUX(5) | PORT_PCR_DSE_MASK;  //SCL0 i SDA0 init
-	PORTE->PCR[25] |= PORT_PCR_MUX(5) | PORT_PCR_DSE_MASK;
-	SIM->SCGC4 |= SIM_SCGC4_I2C0_MASK;
-	I2C0->F = 0x20;		// BAUD RATE == 300[kbps]
-	I2C0->C1 |= I2C_C1_IICEN_MASK;		// enable I2C0
+	I2C0->F = 0x20;		// BR => 300
+	I2C0->C1 |= I2C_C1_IICEN_MASK;		// wlacz I2C0
 }
 
 void I2C1_init(void)
 {
-	gpio_init();
-
-	SIM->SCGC4 |= SIM_SCGC4_I2C1_MASK;
-	PORTE->PCR[0] |= PORT_PCR_MUX(6) | PORT_PCR_DSE_MASK; //SCL1 i SDA1 init
-	PORTE->PCR[1] |= PORT_PCR_MUX(6) | PORT_PCR_DSE_MASK;
-
-	I2C1->F = 0x20;		// BAUD RATE == 300[kbps]
-	I2C1->C1 |= I2C_C1_IICEN_MASK;		// enable I2C1
+	I2C1->F = 0x20;		// BR => 300 kbps
+	I2C1->C1 |= I2C_C1_IICEN_MASK;		// wlacz I2C1
 }
 
 void I2C_en(I2C_Type *I2C)
@@ -97,9 +84,9 @@ void I2C_wait(I2C_Type *I2C)
 	I2C->S |= I2C_S_IICIF_MASK;		// czyszczenie flagi przerwania 
 }
 
-uint8_t I2C_read_cycle(I2C_Type *I2C, uint8_t mpu_add, uint8_t read_reg)
+uint8_t I2C_read_cycle(I2C_Type *I2C, uint8_t mpu_add, uint8_t read_reg)  //funkcja odczyujaca
 {
-	uint8_t dt;		// zmienna z wartosciami
+	uint8_t dt;		// zmienna z wartosciami odczytywanymi
 
 	I2C_en(I2C);
 	I2C_start(I2C);
@@ -130,7 +117,7 @@ uint8_t I2C_read_cycle(I2C_Type *I2C, uint8_t mpu_add, uint8_t read_reg)
 }
 
 
-void I2C_write_cycle(I2C_Type *I2C, uint8_t mpu_write_add, uint8_t write_reg, uint8_t dt)
+void I2C_write_cycle(I2C_Type *I2C, uint8_t mpu_write_add, uint8_t write_reg, uint8_t dt) //funkcja zapisujaca
 {
 	I2C_en(I2C);
 	I2C_start(I2C);
